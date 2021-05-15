@@ -1,4 +1,4 @@
-import click, getpass, sys
+import click, getpass, sys, time
 from click_spinner import spinner
 
 import cmd, texttables, functools, datetime
@@ -114,6 +114,8 @@ def kudo(ctx):
         print('Kudoing %s for %s .. ' % (activity.athlete.name, activity.title), end='')
         if activity.send_kudo(): print('Ok')
         else: print('Failed')
+        # Sleep to limit the rate not to be banned from the provider
+        time.sleep(1.1)
 
 
 def greeting(client):
