@@ -33,7 +33,8 @@ setup(
         "Topic :: Utilities"
     ],
     install_requires=requirements,
-     entry_points={
+    tests_require=["pytest", "requests-mock"],
+    entry_points={
         'console_scripts': [
             'strava-shell = stravatools.cli.shell:main'
         ],
