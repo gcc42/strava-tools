@@ -53,7 +53,7 @@ class Duration(Unit):
 
 class Speed(Unit):
     def __init__(self, duration, distance, unit):
-        if UNIT_EMPTY not in (duration, distance):
+        if UNIT_EMPTY not in (duration, distance) and duration.seconds() > 0:
             self.value = distance.m() / duration.seconds()
         else:
             self.value = None
@@ -65,6 +65,9 @@ class Speed(Unit):
     def ms(self):
         return self.value
 
+    def kn(self):
+        return self.kmh() / 1.852
+
     def for_human(self):
         if not self.value:
             return ''
@@ -74,7 +77,7 @@ class Speed(Unit):
 
 class Pace(Unit):
     def __init__(self, duration, distance, unit):
-        if UNIT_EMPTY not in (duration, distance):
+        if UNIT_EMPTY not in (duration, distance) and distance.km() > 0:
             self.value = duration.minutes() / distance.km()
         else:
             self.value = None

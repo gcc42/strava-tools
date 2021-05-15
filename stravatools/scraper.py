@@ -50,18 +50,19 @@ class StravaScraper(object):
         return session
 
     def __get(self, url, logged=True, allow_redirects=True):
-        self.__debug_request(url)
-        response = self.session.get(url, headers=StravaScraper.BASE_HEADERS, verify=self.cert, allow_redirects=allow_redirects)
+        headers = StravaScraper.BASE_HEADERS
+        self.__debug_request(url, headers)
+        response = self.session.get(url, headers=headers, verify=self.cert, allow_redirects=allow_redirects)
         self.__debug_response(response)
         self.__check_response(response, logged)
         return response
 
     def __post(self, url, data=None, logged=True, allow_redirects=True):
-        self.__debug_request(url)
         csrf_header = {}
         if self.csrf_token: csrf_header[StravaScraper.CSRF_H] = self.csrf_token
 
         headers = {**StravaScraper.BASE_HEADERS, **csrf_header}
+        self.__debug_request(url, headers)
         if data:
             response = self.session.post(url, data=data, headers=headers, verify=self.cert, allow_redirects=allow_redirects)
         else:
@@ -76,9 +77,11 @@ class StravaScraper(object):
             raise NotLogged()
         return response
 
-    def __debug_request(self, url):
+    def __debug_request(self, url, headers):
         if self.debug > 0:
             print('>>> GET %s' % url)
+            print('>>> Headers')
+            pprint(headers)
 
     def __debug_response(self, response):
         if self.debug > 0:
@@ -181,20 +184,31 @@ class StravaScraper(object):
             self.feed_before = sorted(entries, key=lambda data:data[2])[0][1]
 
     def activities(self):
-        for activity in self.soup.select('div.activity'):
+        activities = list(self._activities(self.soup.select('div.activity')))
+        for group in self.soup.select('div.group-activity'):
+            timeTag = group.select('time')
+            sportTag = group.select('.group-activity-icon .app-icon-wrapper .app-icon')
+            activities = activities + list(self._activities(group.select('li.activity'), timeTag, sportTag))
+        return activities
+
+    def _activities(self, selected_activities, timeTag=None, sportTag=None):
+        for activity in selected_activities:
             try:
+                ts = timeTag if timeTag else activity.select('time')
+                st = sportTag if sportTag else activity.select('.entry-body .media .app-icon')
+
                 entry = {
                     'athlete_name': first(activity.select('a.entry-owner'), tag_string()),
-                    'kind': first(activity.select('.entry-body .media .app-icon'), extract_sport()),
-                    'time': first(activity.select('time time'), tag_string()),
-                    'datetime': first(activity.select('time time'), tag_get('datetime', parse_datetime('%Y-%m-%d %H:%M:%S %Z'))),
+                    'kind': first(st, extract_sport()),
+                    'datetime': first(ts, tag_get('datetime', parse_datetime('%Y-%m-%d %H:%M:%S %Z'))),
                     'title': first(activity.select('h3 a'), tag_string()),
                     'id': first(activity.select('h3 a'), tag_get('href', lambda x: x.split('/')[-1])),
                     'distance': find_stat(activity, r'\s*Distance\s*(.+)\s', to_distance),
                     'duration': find_stat(activity, r'\s*Time\s*(.+)\s', to_duration),
-                    'elevation':find_stat(activity, r'\s*Elevation Gain\s*(.+)\s', to_elevation),
+                    'elevation':find_stat(activity, r'\s*Elev Gain\s*(.+)\s', to_elevation),
                     'kudoed': first(activity.select('div.entry-footer div.media-actions button.js-add-kudo')) is None
                 }
+
                 yield entry
             except Exception as e:
                 print(e)
@@ -214,9 +228,18 @@ def has_class(tag, predicate):
 def extract_sport():
     class_sports = {
     'run':'Run',
+    'ebikeride':'EBike',
+    'virtualride':'VRide',
     'ride':'Bike',
     'ski':'Ski',
     'swim':'Swim',
+    'rockclimbing':'Climbing',
+    'hike':'Hike',
+    'walk':'Walk',
+    'yoga':'Yoga',
+    'workout':'Workout',
+    'weighttraining':'Weight',
+    'kitesurf':'Kitesurf',
     '':'Sport' # Must defined at last position
     }
     return lambda tag: first([ v 

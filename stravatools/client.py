@@ -42,11 +42,11 @@ class Client(object):
         return self.store_activities()
 
     def store_activities(self):
-        scraped_activities = list(map(lambda a: Activity(self, a), self.scraper.activities()))
-        new_activities = list(filter(lambda x: not any_match(self.activities, id_eq(x)), scraped_activities))
-        self.activities.extend(new_activities)
-        self.activities = sorted(self.activities, reverse=True, key=lambda x: x.datetime)
-        return (len(new_activities), len(self.activities))
+        activities = set(list(map(lambda a: Activity(self, a), self.scraper.activities())))
+        activities.update(set(self.activities))
+        new = len(activities) - len(self.activities)
+        self.activities = sorted(list(activities), reverse=True, key=lambda x: x.datetime)
+        return (new, len(self.activities))
 
     def select_activities(self, predicate):
         self.selected_activities = list(filter(predicate, self.activities))
@@ -121,6 +121,15 @@ class Activity(Model):
             self.dirty = True
         return sent
 
+    def __eq__(self, other): 
+        if not isinstance(other, Activity):
+            return False
+
+        return self.id == other.id
+
+    def __hash__(self): 
+            return hash(self.id)
+
 class Athlete(Model):
     def __init__(self, id, name):
         self.id = id
@@ -157,6 +166,35 @@ class Bike(Sport):
 class Swim(Sport):
     def velocity(self):
         return Pace(self.duration, self.distance, 'min100m')
+
+class Kitesurf(Sport):
+    def velocity(self):
+        return Speed(self.duration, self.distance, 'kn')
+
+class Climbing(Sport):
+    pass
+
+class Hike(Run):
+    pass
+
+class EBike(Bike):
+    pass
+
+class VBike(Bike):
+    pass
+
+class Walk(Run):
+    pass
+
+class Yoga(Sport):
+    pass
+
+class Workout(Sport):
+    pass
+
+class Weight(Sport):
+    pass
+
 
 
 
