@@ -34,46 +34,25 @@ Here is basic example on how to display, load and send kudos to people as batch
 strava >> login
 Username:
 Password:
-Loaded 10 activities
+Remember session ? [Y/n]:
+strava >> load --all
+Loaded 149 activities
 strava >> activities
-Activities 10/10
-Kudo time              athlete           title
-----+-----------------+-----------------+------------------------------
-✓    Today at 4:41 PM  Cyr*************  Parcour*************
-✓    Today at 4:39 PM  Jay*************  Natatio*************
-✓    Today at 4:24 PM  Der*************  Finishi*************
-✓    Today at 3:41 PM  Ad *************  Afterno*************
-✓    Today at 3:33 PM  Geo*************  Course *************
-✓    Today at 2:44 PM  Nic*************  Randonn*************
-     Today at 1:52 PM  Mad*************  Apprent*************
-✓    Today at 1:08 PM  Céd*************  Derny t*************
-✓    Today at 12:44 PM Mad*************  Apprent*************
-✓    Today at 12:00 PM Nor*************  Belle a*************
-strava >> activities -a mad
-Activities 2/10
-Kudo time              athlete     title
-----+-----------------+-----------+-----------------------
-     Today at 1:52 PM  Mad*************  Apprent*************
-✓    Today at 12:44 PM Mad*************  Course *************
-strava >> load 500
-Loaded 82 activities
-strava >> activities -a mad
-Activities 3/92
-Kudo time                  athlete     title
-----+---------------------+-----------+-----------------------
-     Today at 1:52 PM      Mad*************  Apprent*************
-✓    Today at 12:44 PM     Mad*************  Course *************
-     Yesterday at 12:44 PM Mad*************  Natatio*************
+Activities 171/171
+Kudo Time                 Athlete               Sport Duration Distance Elevation Velocity Title
+----+--------------------+---------------------+-----+--------+--------+---------+--------+--------------------------------
+     2019-03-27 08:42:06  J************         Sport 11h 26m  2.54 km                     Marche matinale
+✓    2019-03-27 09:14:07  N************         Bike  26m 47s  12.00 km           26.9 kmh Vélo au fit
+✓    2019-03-27 10:49:02  L****** P*****        Ski   4h 45m   57.38 km                    Skiing in Norefjell with friends
+✓    2019-03-27 11:48:03  M****** M*****        Run   1h 41m   19.00 km           5'18     Lunch Run
+     2019-03-27 16:29:06  J***** B******        Bike  49m 51s  16.98 km           20.4 kmh Sortie à vélo dans l'après-midi
+✓    2019-03-27 16:55:05  L*** A*****           Bike  58m 03s  33.29 km           34.4 kmh Mistral gagnant
+✓    2019-03-27 17:16:00  R***** D****          Run   41m 07s  7.83 km            5'15     Evening Run
+✓    2019-03-27 17:22:55  A******** N******     Run   57m 23s  8.60 km            6'40     Evening Run
+     2019-03-27 17:30:12  J***** M*****         Sport 1h 00m                               Bodybalance
+✓    2019-03-27 21:23:21  C**** P****           Sport 29m 00s                              Night Activity
 strava >> kudo
-Sending kudo to Mad************* for Apprent*************
-Ok
-Sending kudo to Mad************* for Natatio*************
-Ok
-strava >> activities -a mad
-Activities 3/92
-Kudo time                  athlete     title
-----+---------------------+-----------+-----------------------
-*    Today at 1:52 PM      Mad*************  Apprent*************
-✓    Today at 12:44 PM     Mad*************  Course *************
-*    Yesterday at 12:44 PM Mad*************  Natatio*************
+Kudoing J******** for Marche matinale .. Ok
+Kudoing J***** B****** for Sortie à vélo dans l'après-midi .. Ok
+Kudoing J***** M***** for Night Activity .. Ok
 ```
