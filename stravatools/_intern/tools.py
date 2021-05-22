@@ -41,6 +41,11 @@ def id_eq(a):
 
 
 # Predicates
+def build_predicate_list(predicate, xs):
+    return functools.reduce(lambda p, param:
+        disjonction(p, predicate(param)),
+        xs, lambda x: False) if len(xs) > 0 else lambda x: True
+
 def contains(param, value):
     if not param or len(param) == 0:
         return True
@@ -48,6 +53,12 @@ def contains(param, value):
         return param[1:].lower() not in value.lower()
     
     return param.lower() in value.lower()
+
+def not_contains(param, value):
+    if not param or len(param) == 0:
+        return False
+    
+    return param.lower() not in value.lower()
 
 def eq(param, value):
     if not param or len(param) == 0:

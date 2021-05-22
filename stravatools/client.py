@@ -171,10 +171,13 @@ class Kitesurf(Sport):
     def velocity(self):
         return Speed(self.duration, self.distance, 'kn')
 
-class Climbing(Sport):
+class Walk(Run):
     pass
 
 class Hike(Run):
+    pass
+
+class Golf(Run):
     pass
 
 class EBike(Bike):
@@ -183,10 +186,10 @@ class EBike(Bike):
 class VBike(Bike):
     pass
 
-class Walk(Run):
+class Yoga(Sport):
     pass
 
-class Yoga(Sport):
+class Climbing(Sport):
     pass
 
 class Workout(Sport):

@@ -1,7 +1,8 @@
 import click, getpass, sys, time
 from click_spinner import spinner
 
-import cmd, texttables, functools, datetime
+import cmd, texttables, datetime
+from functools import partial
 from stravatools.scraper import NotLogged, WrongAuth
 from stravatools import __version__
 from stravatools._intern.tools import *
@@ -67,23 +68,27 @@ def load(ctx, all, next, n):
     print('Loaded %d activities' % new)
 
 @click.command()
-@click.option('-a', '--athlete', help='Filter and display activities that pattern match the athlete name')
+@click.option('-a', '--athlete', multiple=True, help='Filter and display activities that pattern match the athlete name')
+@click.option('-s', '--sport', multiple=True, help='Filter and display activities that pattern match the athlete sport')
 @click.option('-K/-k', '--kudoed/--no-kudoed', is_flag=True, default=None, help='Filter and display activities you haven''t sent a kudo')
 @click.pass_context
-def activities(ctx, athlete, kudoed):
+def activities(ctx, athlete, sport, kudoed):
     '''Dispaly loaded activity and filters are used to select activities
   <pattern> [-]<string> ('-' negate)'''
 
     class dialect(texttables.Dialect):
         header_delimiter = '-'
 
-    predicate = [ func(param) for param, func in [
-        (athlete, filter_athlete),
-        (kudoed, filter_kudo)
-    ] if param != None ]
+    name_includes = list(filter(lambda x: x[0] != '-', athlete))
+    name_excludes = list(map(lambda x: x[1:], filter(lambda x: len(x) > 1 and x[0] == '-', athlete)))
+    kudoed_predicate = filter_kudo(kudoed) if kudoed != None else lambda x: True
 
     client = ctx.obj['client']
-    client.select_activities(all_predicates(predicate))
+    client.select_activities(all_predicates((
+        kudoed_predicate,
+        build_predicate_list(partial(filter_name, contains), name_includes),
+        build_predicate_list(partial(filter_name, not_contains), name_excludes),
+        build_predicate_list(partial(filter_sport, contains), sport))))
 
     print('Activities %d/%d' % (len(client.selected_activities), len(client.activities)))
     if len(client.selected_activities) > 0:
@@ -122,7 +127,9 @@ def greeting(client):
     if client.get_owner():
         click.secho('Welcome %s' % client.get_owner().name)
 
-def filter_athlete(param):
-    return lambda activity: contains(param, activity.athlete.name)
+def filter_name(predicate, param):
+    return lambda activity: predicate(param, activity.athlete.name)
+def filter_sport(predicate, param):
+    return lambda activity: predicate(param, activity.sport.name)
 def filter_kudo(sent):
     return lambda activity: eq_bool(sent, activity.kudoed)

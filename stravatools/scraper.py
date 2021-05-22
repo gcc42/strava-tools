@@ -240,6 +240,7 @@ def extract_sport():
     'workout':'Workout',
     'weighttraining':'Weight',
     'kitesurf':'Kitesurf',
+    'golf':'Golf',
     '':'Sport' # Must defined at last position
     }
     return lambda tag: first([ v 
