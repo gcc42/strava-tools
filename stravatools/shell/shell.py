@@ -1,11 +1,11 @@
 
-import click, os
+import click, os, logging
 from stravatools import __version__
-from stravatools.client import Client
-from stravatools.cli import commands
+from stravatools.client import Client, Config
+from stravatools.shell import commands
 # If Pull Request accepted: from click_shell import shell
-from stravatools.cli.click_shell_plus import shell
-from stravatools.cli.commands import *
+from stravatools.shell.click_shell_plus import shell
+from stravatools.shell.commands import *
 
 histfile = os.path.join(os.path.expanduser("~"), ".strava_history")
 
@@ -31,4 +31,9 @@ def main(cert, verbose):
     cli_shell(obj = {'client': Client(cert=cert, debug=verbose)})
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        filename=os.path.join(Config.CONFIG_DIR, 'shell_run.log'),
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+        datefmt='%Y-%m-%d:%H:%M:%S')
     main()

@@ -1,13 +1,12 @@
-import sys, pathlib, json
-from pprint import pprint
-from stravatools.scraper import StravaScraper, NotLogged
-from stravatools._intern.tools import *
-from stravatools._intern.units import *
+import pathlib, json, logging, os
 
-__this_module__ = sys.modules[__name__]
+from stravatools.scraper import StravaScraper
+from stravatools.strava_types import Activity, Athlete
+
+logger = logging.getLogger(__name__)
+
 
 class Client(object):
-
     def __init__(self, config_dirname=None, cert=None, debug=0):
         self.config = Config(config_dirname)
         self.scraper = StravaScraper(self.config.basepath, self.config['owner_id'], cert, debug)
@@ -24,22 +23,59 @@ class Client(object):
             return self.config['username']
         return None
 
-    def login(self, username, password, remember=True):
-        self.scraper.login(username, password, remember)
-
-        (oid, name) = self.scraper.owner
-        self.config['owner_id'] = oid
-        self.config['owner_name'] = name
-        self.config['username'] = username
-        self.store_activities()
+    def login(self, username, password, remember=True, save_credentials=False):
+        try:
+            self.scraper.login(username, password, remember)
+            (oid, name) = self.scraper.owner
+            self.config['owner_id'] = oid
+            self.config['owner_name'] = name
+            self.config['username'] = username
+            if save_credentials:
+                self.config['password'] = password
+            return True
+        except Exception as e:
+            logger.exception('Error while logging in')
+            return False
+        # self.store_activities()
 
     def logout(self):
         self.scraper.logout()
 
-    def load_activity_feed(self, next=False, num=20):
-        if next: self.scraper.load_feed_next()
-        else:    self.scraper.load_dashboard(min(max(1, num), 100))
+    def verify_login(self):
+        if self.scraper.is_logged_in():
+            return
+        if self.config['username'] and self.config['password']:
+            self.login(self.config['username'], self.config['password'], remember=True)
+        else:
+            raise RuntimeError('Not logged in and no credentials available')
+
+    def load_activity_feed(self, athlete_id=0, next=False, num=20):
+        if next:
+            self.scraper.load_feed_next(athlete_id)
+        else:
+            self.scraper.load_dashboard(athlete_id, min(max(1, num), 100))
         return self.store_activities()
+
+    def fetch_club_activities(self, club_id):
+        """
+        Fetch all the activities from club_id (strava only shows the last 100 activities).
+
+        Returns a list of Activities or Exception.
+        """
+        entries = []
+        try:
+            self.verify_login()
+            cursor, has_more, fetched_entries = self.scraper.fetch_club_activites(club_id)
+            entries.append(fetched_entries)
+            logger.info('Fetched %d entries from club feed:\n%s' % (len(fetched_entries), fetched_entries))
+            while cursor and has_more:
+                cursor, has_more, fetched_entries = self.scraper.fetch_club_activites(club_id, cursor=cursor)
+                entries.append(fetched_entries)
+                logger.info('Fetched %d entries from club feed:\n%s' % (len(fetched_entries), fetched_entries))
+            return [Activity(a) for a in entries]
+        except Exception as e:
+            logger.exception('Error while fetching club')
+            return e
 
     def store_activities(self):
         activities = set(list(map(lambda a: Activity(self, a), self.scraper.activities())))
@@ -59,9 +95,12 @@ class Client(object):
         self.scraper.load_page(page)
         return self.store_activities()
 
+    def send_kudos(self, activity: Activity):
+        return self.scraper.send_kudo(activity.id)
+
 
 class Config(object):
-    CONFIG_DIR = '/'.join((str(pathlib.Path.home()), '.strava-tools'))
+    CONFIG_DIR = os.path.join(str(pathlib.Path.home()), '.strava-tools')
     FILE = 'config.json'
     data = {}
 
@@ -83,134 +122,12 @@ class Config(object):
         try:
             with path.open() as file:
                 return json.loads(file.read())
-        except: return {}
+        except:
+            return {}
 
-    def __save(self, data, filname):
-        with (self.basepath / filname).open('w') as file:
+    def __save(self, data, filename):
+        with (self.basepath / filename).open('w') as file:
             file.write(json.dumps(data))
 
     def save(self):
         self.__save(self.data, Config.FILE)
-
-
-class Model(object):
-    def __repr__(self):
-        attrs = [
-            '{0}={1}'.format(x, self.__getattribute__(x))
-            for x in ['id','name']
-            if hasattr(self, x)
-        ]
-        return '<{0} {1}>'.format(self.__class__.__name__, ' '.join(attrs))
-
-class Activity(Model):
-    def __init__(self, client, scraped):
-        self.client = client
-        self.id = scraped.get('id')
-        self.athlete = Athlete.of(scraped)
-        self.datetime = scraped.get('datetime')
-        self.title = scraped.get('title')
-        self.sport = Sport.of(scraped)
-        self.kudoed = scraped.get('kudoed')
-        self.kudos = 0
-        self.dirty = False
-
-    def send_kudo(self):
-        sent = self.client.scraper.send_kudo(self.id)
-        if sent:
-            self.kudoed = True
-            self.dirty = True
-        return sent
-
-    def __eq__(self, other): 
-        if not isinstance(other, Activity):
-            return False
-
-        return self.id == other.id
-
-    def __hash__(self): 
-            return hash(self.id)
-
-class Athlete(Model):
-    def __init__(self, id, name):
-        self.id = id
-        self.name = name
-
-    @classmethod
-    def of(cls, data):
-        return cls(data.get('athlete_id'), data.get('athlete_name'))
-
-class Sport(Model):
-    def __init__(self, scraped):
-        self.name = scraped.get('kind')
-        self.duration = scraped.get('duration')
-        self.distance = scraped.get('distance')
-        self.elevation = scraped.get('elevation')
-
-    def velocity(self):
-        return UNIT_EMPTY
-
-    def of(scraped):
-        kind = scraped.get('kind')
-        if hasattr(__this_module__, kind):
-            return getattr(__this_module__, kind)(scraped)
-        return Sport(scraped)
-
-class Run(Sport):
-    def velocity(self):
-        return Pace(self.duration, self.distance, 'minkm')
-
-class Bike(Sport):
-    def velocity(self):
-        return Speed(self.duration, self.distance, 'kmh')
-
-class Swim(Sport):
-    def velocity(self):
-        return Pace(self.duration, self.distance, 'min100m')
-
-class Kitesurf(Sport):
-    def velocity(self):
-        return Speed(self.duration, self.distance, 'kn')
-
-class Walk(Run):
-    pass
-
-class Hike(Run):
-    pass
-
-class Golf(Run):
-    pass
-
-class EBike(Bike):
-    pass
-
-class VBike(Bike):
-    pass
-
-class Yoga(Sport):
-    pass
-
-class Climbing(Sport):
-    pass
-
-class Workout(Sport):
-    pass
-
-class Weight(Sport):
-    pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
