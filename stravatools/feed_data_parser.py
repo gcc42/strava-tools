@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import re
+import re, logging
 from datetime import date, timedelta, datetime
 from bs4 import BeautifulSoup
 
 from stravatools._intern.units import Duration, UNIT_EMPTY, Elevation, Distance
+
+logger = logging.getLogger(__name__)
 
 # Strava data keys.
 _ENTITY = 'entity'
@@ -13,21 +15,24 @@ _ACTIVITY = 'activity'
 _ACTIVITY_NAME = 'activityName'
 _ATHLETE = 'athlete'
 _ATHLETE_NAME = 'athleteName'
-_CURSOR_DATE = 'cursorData'
+_CURSOR_DATA = 'cursorData'
 _FEED_TYPE = 'feedType'
+_HAS_MORE = 'hasMore'
 _ID = 'id'
 _ENTRIES = 'entries'
+_PAGINATION = 'pagination'
 _TIME_AND_LOCATION = 'timeAndLocation'
 _TYPE = 'type'
+_UPDATED_AT = 'updated_at'
 
 
 def has_more(feed_data):
-    return feed_data.get('pagination', {}).get('hasMore', False)
+    return feed_data.get(_PAGINATION, {}).get(_HAS_MORE, False)
 
 
 def get_cursor(feed_data):
     try:
-        return feed_data[_ENTRIES][-1]['cursorData']['updated_at']
+        return feed_data[_ENTRIES][-1][_CURSOR_DATA][_UPDATED_AT]
     except:
         return None
 
@@ -42,13 +47,14 @@ def parse_entries(entries):
 
 
 def parse_entry(entry):
+    """Parse activity entry from fetched feed."""
     assert entry.get(_ENTITY, '') == 'Activity'
     activity = entry[_ACTIVITY]
     e = {
-        'athlete_name': activity[_ATHLETE][_ATHLETE_NAME].replace('\n', ' '),
+        'athlete_name': decode_unicode_escape(activity[_ATHLETE][_ATHLETE_NAME].replace('\n', ' ')),
         'kind': activity[_TYPE],
         'datetime': parse_timestamp(activity[_TIME_AND_LOCATION]),
-        'title': activity[_ACTIVITY_NAME],
+        'title': decode_unicode_escape(activity[_ACTIVITY_NAME]),
         'id': activity[_ID],
         'distance': get_stat(activity, 'Distance'),
         'duration': get_stat(activity, 'Time'),
@@ -79,7 +85,7 @@ def get_stat(activity, stat_name):
     try:
         return _get_stat(activity, stat_name)
     except Exception as e:
-        # TODO Log the exception
+        logging.exception('Error fetching stat %s', stat_name)
         return None
 
 
@@ -95,11 +101,13 @@ def _get_stat(activity, stat_name: str):
     else:
         raise ValueError('Invalid stat_name %s' % stat_name)
     # Find key of the required stat, eg. 'stat_one'.
-    key = [stat['key'] for stat in activity['stats'] if stat['value'].lower() == stat_name][0].split('_subtitle')[0]
+    try:
+        key = [stat['key'] for stat in activity['stats'] if stat['value'].lower() == stat_name][0].split('_subtitle')[0]
+    except:
+        return None
     value = [stat['value'] for stat in activity['stats'] if stat['key'] == key][0]
     # Unescape unicode escaped HTML and extract text. Parse and return.
-    unescaped = bytes(value, 'utf-8').decode('unicode_escape')
-    text = BeautifulSoup(unescaped, "html.parser").text
+    text = BeautifulSoup(decode_unicode_escape(value), "html.parser").text
     return parser(text)
 
 
@@ -137,6 +145,11 @@ def to_distance(value):
             num = num * 1000
         return Distance(num)
     return UNIT_EMPTY
+
+
+def decode_unicode_escape(text: str):
+    """Decode unicode escaped strings like Miko\u0142aj."""
+    return bytes(text, 'utf-8').decode('unicode_escape')
 
 
 if __name__ == '__main__':

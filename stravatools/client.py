@@ -58,19 +58,18 @@ class Client(object):
 
     def fetch_club_activities(self, club_id):
         """
-        Fetch all the activities from club_id (strava only shows the last 100 activities).
-
-        Returns a list of Activities or Exception.
+        Fetch all the activities from club_id (strava only shows the last 100 activities). Returns a list of Activities
+        or Exception.
         """
         entries = []
         try:
             self.verify_login()
             cursor, has_more, fetched_entries = self.scraper.fetch_club_activites(club_id)
-            entries.append(fetched_entries)
+            entries.extend(fetched_entries)
             logger.info('Fetched %d entries from club feed:\n%s' % (len(fetched_entries), fetched_entries))
             while cursor and has_more:
                 cursor, has_more, fetched_entries = self.scraper.fetch_club_activites(club_id, cursor=cursor)
-                entries.append(fetched_entries)
+                entries.extend(fetched_entries)
                 logger.info('Fetched %d entries from club feed:\n%s' % (len(fetched_entries), fetched_entries))
             return [Activity(a) for a in entries]
         except Exception as e:
