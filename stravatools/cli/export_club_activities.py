@@ -4,16 +4,21 @@ import logging
 
 
 def _args_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('username', type=str, help='Strava username used to login.')
-    parser.add_argument('password', type=str, help='Strava password.')
-    parser.add_argument('-s', '--save', action='store_true', help='Save credentials to config.')
+    parser = argparse.ArgumentParser(description='Export Strava club activities to a spreadsheet')
+    parser.add_argument('--spredsheet', type=str, help='Spreadsheet to export to.', required=True)
+    parser.add_argument('club_id', type=str, help='ID of the club to export data.', required=True)
     return parser
 
 
 def main(parser: argparse.ArgumentParser) -> None:
     args = parser.parse_args()
     client = Client()
+    activities_or_error = client.fetch_club_activities(args.club_id)
+    if isinstance(activities_or_error, Exception):
+        print('Error:', str(activities_or_error))
+        sys.exit(1)
+    # If activities were fetched successfully, export to spreadsheet.
+    spreadsheet = args.spreadsheet
     if client.login(username=args.username, password=args.password, remember=True, save_credentials=args.save):
         client.close()
         sys.exit(0)

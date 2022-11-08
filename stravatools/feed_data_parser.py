@@ -111,7 +111,7 @@ def _get_stat(activity, stat_name: str):
     return parser(text)
 
 
-def to_duration(value):
+def to_duration(value) -> str:
     units = {
         'h': lambda s: int(s) * 60 * 60,
         'm': lambda s: int(s) * 60,
@@ -125,7 +125,7 @@ def to_duration(value):
     return UNIT_EMPTY
 
 
-def to_elevation(value):
+def to_elevation(value) -> str:
     m = re.search(r'\s*(.+)\s+(km|m)\s*', value)
     if m:
         # remove thousand separator
@@ -136,7 +136,7 @@ def to_elevation(value):
     return UNIT_EMPTY
 
 
-def to_distance(value):
+def to_distance(value) -> str:
     m = re.search(r'\s*(.+)\s+(km|m)\s*', value)
     if m:
         # remove thousand separator

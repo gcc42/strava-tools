@@ -178,13 +178,14 @@ class StravaScraper(object):
         return self.parse_club_activities(response)
 
     @staticmethod
-    def parse_club_activities(response):
+    def parse_club_activities(response: requests.Response):
         try:
             feed_data = json.loads(response.text)
         except json.JSONDecodeError as e:
             raise UnexpectedScrapped('Could not parse club activities data') from e
-        return feed_data_parser.get_cursor(feed_data), feed_data_parser.has_more(
-            feed_data), feed_data_parser.club_feed_activites(feed_data)
+        return (feed_data_parser.get_cursor(feed_data),
+                feed_data_parser.has_more(feed_data),
+                feed_data_parser.club_feed_activites(feed_data))
 
     def send_kudo(self, activity_id):
         try:
