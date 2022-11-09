@@ -23,14 +23,14 @@ class Client(object):
             return self.config['username']
         return None
 
-    def login(self, username, password, remember=True, save_credentials=False):
+    def login(self, username, password, remember=True, save_creds=False):
         try:
             self.scraper.login(username, password, remember)
             (oid, name) = self.scraper.owner
             self.config['owner_id'] = oid
             self.config['owner_name'] = name
             self.config['username'] = username
-            if save_credentials:
+            if save_creds:
                 self.config['password'] = password
             return True
         except Exception as e:

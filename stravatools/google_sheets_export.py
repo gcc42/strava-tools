@@ -70,7 +70,7 @@ def export_activities(activities: [Activity], spreadsheet_id: str):
     sheet = service.spreadsheets()
     result = sheet.values().get(spreadsheetId=spreadsheet_id,
                                 range=DATA_RANGE).execute()
-    assert result.get('range', '') == DATA_RANGE
+    # assert result.get('range', '') == DATA_RANGE
 
     updated_values = update_values(result.get('values', []), activities)
     result = sheet.values().update(spreadsheetId=spreadsheet_id,
@@ -80,6 +80,7 @@ def export_activities(activities: [Activity], spreadsheet_id: str):
     logger.info('Updated %d cells, with %d rows and %d columns'
                 % (result.get('updatedCells'), result.get('updatedRows'), result.get('updatedColumns')))
     logger.debug('Updated data: %s' % str(result.get('updatedData')))
+    return result.get('updatedCells')
 
 
 def update_values(values, activities: [Activity]):
@@ -90,13 +91,25 @@ def update_values(values, activities: [Activity]):
     activities_dict = {
         activity.id: convert_to_row(activity) for activity in activities
     }
+    values_dict.update(activities_dict)
+    #
+    return sorted(values_dict.values(), key=lambda r: r[0])
 
 
 def convert_to_row(activity: Activity) -> [str]:
     """Convert activity object to data row to export."""
-
-    [
+    duration_secs = activity.sport.duration.seconds() if activity.sport.duration else ''
+    distance_m = activity.sport.distance.m() if activity.sport.distance else ''
+    elevation_m = activity.sport.elevation.m() if activity.sport.elevation else ''
+    row = [
         activity.id,
         activity.athlete.id,
-
+        str(activity.datetime),  # datetime
+        activity.title,
+        activity.sport.name,
+        duration_secs,
+        distance_m,
+        elevation_m
     ]
+    # Convert all the None values to empty strings.
+    return [item if item is not None else '' for item in row]

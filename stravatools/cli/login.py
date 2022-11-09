@@ -1,4 +1,4 @@
-import argparse, sys
+import argparse, sys, os
 from stravatools.client import Client, Config
 import logging
 
@@ -14,7 +14,8 @@ def _args_parser() -> argparse.ArgumentParser:
 def main(parser: argparse.ArgumentParser) -> None:
     args = parser.parse_args()
     client = Client()
-    if client.login(username=args.username, password=args.password, remember=True, save_credentials=args.save):
+    print(args.username, args.password, args.save)
+    if client.login(args.username, args.password, True, args.save):
         client.close()
         sys.exit(0)
     else:
@@ -23,7 +24,7 @@ def main(parser: argparse.ArgumentParser) -> None:
 
 if __name__ == '__main__':
     logging.basicConfig(
-        filename='/'.join(Config.CONFIG_DIR, 'run.log'),
+        filename=os.path.join(Config.CONFIG_DIR, 'run.log'),
         level=logging.INFO,
         format='%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
         datefmt='%Y-%m-%d:%H:%M:%S')

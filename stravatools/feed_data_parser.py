@@ -14,6 +14,7 @@ _ENTITY = 'entity'
 _ACTIVITY = 'activity'
 _ACTIVITY_NAME = 'activityName'
 _ATHLETE = 'athlete'
+_ATHLETE_ID = 'athleteId'
 _ATHLETE_NAME = 'athleteName'
 _CURSOR_DATA = 'cursorData'
 _FEED_TYPE = 'feedType'
@@ -51,6 +52,7 @@ def parse_entry(entry):
     assert entry.get(_ENTITY, '') == 'Activity'
     activity = entry[_ACTIVITY]
     e = {
+        'athlete_id': activity[_ATHLETE][_ATHLETE_ID],
         'athlete_name': decode_unicode_escape(activity[_ATHLETE][_ATHLETE_NAME].replace('\n', ' ')),
         'kind': activity[_TYPE],
         'datetime': parse_timestamp(activity[_TIME_AND_LOCATION]),
