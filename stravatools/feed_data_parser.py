@@ -7,7 +7,7 @@ from datetime import date, timedelta, datetime
 
 from bs4 import BeautifulSoup
 
-from stravatools._intern.units import Duration, UNIT_EMPTY, Elevation, Distance
+from stravatools._intern.units import Duration, Elevation, Distance
 
 logger = logging.getLogger(__name__)
 
@@ -153,40 +153,40 @@ def _get_stat(activity, stat_name: str):
     return parser(text)
 
 
-def to_duration(value) -> str:
+def to_duration(value) -> Duration:
     units = {
         'h': lambda s: int(s) * 60 * 60,
         'm': lambda s: int(s) * 60,
         's': lambda s: int(s),
     }
-    m = re.search(r'(\d+)([hms])\s+(\d+)([hms])*', value.strip())
-    if m:
-        (s1, t1, s2, t2) = m.groups()
-        return Duration(units[t1](s1) + units[t2](s2))
-
-    return UNIT_EMPTY
-
-
-def to_elevation(value) -> str:
-    m = re.search(r'\s*(.+)\s+(km|m)\s*', value)
-    if m:
-        # remove thousand separator
-        num = float(re.sub(r'[^\d\.]', '', m.group(1)))
-        if m.group(2) == 'km':
-            num = num * 1000
-        return Elevation(num)
-    return UNIT_EMPTY
+    m = re.match(r'(\d+)([hms])\s*((\d+)([hms]))?', value.strip())
+    if not m:
+        raise ValueError('Invalid duration value %s' % value)
+    (s1, t1, _, s2, t2) = m.groups()
+    duration_sec = units[t1](s1) + (units[t2](s2) if s2 and t2 else 0)
+    return Duration(duration_sec)
 
 
-def to_distance(value) -> str:
-    m = re.search(r'\s*(.+)\s+(km|m)\s*', value)
-    if m:
-        # remove thousand separator
-        num = float(re.sub(r'[^\d\.]', '', m.group(1)))
-        if m.group(2) == 'km':
-            num = num * 1000
-        return Distance(num)
-    return UNIT_EMPTY
+def to_elevation(value) -> Elevation:
+    m = re.match(r'(.+)\s*(km|m)', value.strip())
+    if not m:
+        raise ValueError('Invalid elevation value %s' % value)
+    # remove thousand separator
+    num = float(re.sub(r'[^\d\.]', '', m.group(1)))
+    if m.group(2) == 'km':
+        num = num * 1000
+    return Elevation(num)
+
+
+def to_distance(value) -> Distance:
+    m = re.match(r'(.+)\s*(km|m)', value.strip())
+    if not m:
+        raise ValueError('Invalid distance value %s' % value)
+    # remove thousand separator.
+    num = float(re.sub(r'[^\d.]', '', m.group(1)))
+    if m.group(2) == 'km':
+        num = num * 1000
+    return Distance(num)
 
 
 def decode_unicode_escape(text: str):
