@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import re, logging
+import logging
+import re
 from datetime import date, timedelta, datetime
+
 from bs4 import BeautifulSoup
 
 from stravatools._intern.units import Duration, UNIT_EMPTY, Elevation, Distance
@@ -79,7 +81,7 @@ def parse_activity(entry):
         'duration': get_stat(activity, 'Time'),
         'elevation': get_stat(activity, 'Elev Gain'),
     }
-    return [e,]
+    return [e, ]
 
 
 def parse_group_activity(entry):

@@ -1,12 +1,14 @@
-import click, getpass, sys, time
+import datetime
+import sys
+import time
+from functools import partial
+
+import click
+import texttables
 from click_spinner import spinner
 
-import cmd, texttables, datetime
-from functools import partial
-from stravatools.scraper import NotLogged, WrongAuth
-from stravatools import __version__
 from stravatools._intern.tools import *
-import traceback
+from stravatools.scraper import WrongAuth
 
 
 @click.command()
@@ -126,7 +128,6 @@ def activities(ctx, month, athlete_id):
     with spinner():
         activites_or_error = ctx.obj['client'].fetch_athlete_activities(athlete_id, month=month.date())
     if isinstance(activites_or_error, Exception):
-        traceback.print_exc()
         print('Error:', str(activites_or_error))
         return 1
     # We've elimited errors, now we have only activites.
