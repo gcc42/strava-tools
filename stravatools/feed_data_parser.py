@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 # Strava data keys.
 _ENTITY = 'entity'
 _ACTIVITY = 'activity'
+_ACTIVITIES = 'activities'
 _ACTIVITY_NAME = 'activityName'
 _ATHLETE = 'athlete'
 _ATHLETE_ID = 'athleteId'
@@ -22,6 +23,8 @@ _HAS_MORE = 'hasMore'
 _ID = 'id'
 _ENTRIES = 'entries'
 _PAGINATION = 'pagination'
+_PREFETCHED_ENTRIES = 'preFetchedEntries'
+_ROW_DATA = 'rowData'
 _TIME_AND_LOCATION = 'timeAndLocation'
 _TYPE = 'type'
 _UPDATED_AT = 'updated_at'
@@ -40,15 +43,29 @@ def get_cursor(feed_data):
 
 def club_feed_activites(feed_data):
     # assert feed_data.get(_FEED_TYPE) == 'club'
-    return parse_entries(feed_data.get(_ENTRIES, {}))
+    return parse_entries(feed_data.get(_ENTRIES, []))
+
+
+def athlete_feed_activities(feed_data):
+    assert feed_data.get(_FEED_TYPE) == 'profile'
+    return parse_entries(feed_data.get(_PREFETCHED_ENTRIES, []))
 
 
 def parse_entries(entries):
-    return [parse_entry(e) for e in entries]
+    return [a for e in entries if e.get('entity') in ('Activity', 'GroupActivity') for a in parse_entry(e)]
 
 
 def parse_entry(entry):
     """Parse activity entry from fetched feed."""
+    if entry.get('entity') == 'Activity':
+        return parse_activity(entry)
+    elif entry.get('entity') == 'GroupActivity':
+        return parse_group_activity(entry)
+    else:
+        raise RuntimeError('Error parsing entry', entry)
+
+
+def parse_activity(entry):
     assert entry.get(_ENTITY, '') == 'Activity'
     activity = entry[_ACTIVITY]
     e = {
@@ -62,7 +79,28 @@ def parse_entry(entry):
         'duration': get_stat(activity, 'Time'),
         'elevation': get_stat(activity, 'Elev Gain'),
     }
-    return e
+    return [e,]
+
+
+def parse_group_activity(entry):
+    timestamp = parse_timestamp(entry[_TIME_AND_LOCATION])
+    activities = []
+    assert entry[_ROW_DATA]['entity'] == 'GroupActivity'
+    for activity in entry[_ROW_DATA][_ACTIVITIES]:
+        if activity[_ENTITY] != 'Activity':
+            continue
+        activities.append({
+            'athlete_id': activity['athlete_id'],
+            'athlete_name': decode_unicode_escape(activity['athlete_name'].replace('\n', ' ')),
+            'kind': activity[_TYPE],
+            'datetime': timestamp,
+            'title': decode_unicode_escape(activity['name']),
+            'id': activity['entity_id'],
+            'distance': get_stat(activity, 'Distance'),
+            'duration': get_stat(activity, 'Time'),
+            'elevation': get_stat(activity, 'Elev Gain'),
+        })
+    return activities
 
 
 def parse_timestamp(time_and_location) -> datetime:
@@ -157,8 +195,8 @@ def decode_unicode_escape(text: str):
 if __name__ == '__main__':
     import json
 
-    with open('data.txt') as f:
+    with open('piobut.txt', 'r', encoding='utf-8') as f:
         data = json.load(f)
-    entry0 = data[_ENTRIES][0]
-    activity = entry0[_ACTIVITY]
-    print(club_feed_activites(data))
+    entry0 = data['preFetchedEntries'][0]
+    # activity = entry0[_ACTIVITY]
+    print(athlete_feed_activities(data))

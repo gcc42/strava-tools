@@ -5,7 +5,7 @@ import requests, http, traceback, sys, re, json, logging
 from stravatools import feed_data_parser
 
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, date
 from pprint import pprint
 from typing import Union
 
@@ -33,6 +33,9 @@ class StravaScraper(object):
 
     URL_CLUB_FEED = "%s/clubs/%%s/feed?feed_type=club&athlete_id=%%s&club_id=%%s" % BASE_URL
     FEED_CURSOR_BEFORE_PARAMS = 'before=%s&cursor=%s'
+
+    URL_ATHLETE_DASHBOARD = '%s/athletes/%%s' % BASE_URL
+    ATHLETE_DASHBOARD_PARAMS = 'interval=%s&interval_type=%s'
 
     soup = None
     response = None
@@ -169,8 +172,6 @@ class StravaScraper(object):
         self.session.cookies.clear()
 
     def fetch_club_activites(self, club_id: str, cursor: Union[str, None] = None):
-        if not self.is_logged_in():
-            raise AssertionError('Not logged in')
         feed_url = StravaScraper.URL_CLUB_FEED % (club_id, self.owner[0], club_id)
         if cursor:
             feed_url += '&' + StravaScraper.FEED_CURSOR_BEFORE_PARAMS % (cursor, cursor)
@@ -186,6 +187,24 @@ class StravaScraper(object):
         return (feed_data_parser.get_cursor(feed_data),
                 feed_data_parser.has_more(feed_data),
                 feed_data_parser.club_feed_activites(feed_data))
+
+    def fetch_athlete_activities(self, athlete_id: str, month: date = None):
+        dashboard_url = StravaScraper.URL_ATHLETE_DASHBOARD % athlete_id
+        if month:
+            dashboard_url += '?' + self.ATHLETE_DASHBOARD_PARAMS % (month.strftime('%Y%m'), 'month')
+        response = self.__get(dashboard_url)
+        return self.parse_dashboard_activities(response)
+
+    @staticmethod
+    def parse_dashboard_activities(response: requests.Response):
+        try:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            feed_data_str = soup.select_one('div.content.react-feed-component')['data-react-props']
+            feed_data = json.loads(feed_data_str)
+        except Exception as e:
+            logger.exception('Error parsing user feed data, response:\n%s', response.text)
+            raise UnexpectedScrapped('Could not parse athlete dashbaord activities data') from e
+        return feed_data_parser.athlete_feed_activities(feed_data)
 
     def send_kudo(self, activity_id):
         try:

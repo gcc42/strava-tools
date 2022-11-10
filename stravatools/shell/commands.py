@@ -6,6 +6,7 @@ from functools import partial
 from stravatools.scraper import NotLogged, WrongAuth
 from stravatools import __version__
 from stravatools._intern.tools import *
+import traceback
 
 
 @click.command()
@@ -79,7 +80,7 @@ def load(ctx, all, next, n):
 @click.option('-K/-k', '--kudoed/--no-kudoed', is_flag=True, default=None,
               help='Filter and display activities you haven''t sent a kudo')
 @click.pass_context
-def activities(ctx, athlete, sport, kudoed):
+def filtered_activities(ctx, athlete, sport, kudoed):
     '''Dispaly loaded activity and filters are used to select activities
   <pattern> [-]<string> ('-' negate)'''
 
@@ -115,9 +116,28 @@ def kudo(ctx):
 
 
 @click.command()
+@click.option('-m', '--month', type=click.DateTime(formats=["%Y-%m"]), required=False,
+              help='List activities for month', default=None)
+@click.argument('athlete_id', required=True)
+@click.pass_context
+def activities(ctx, month, athlete_id):
+    """Fetch and display activity feed for an athlete."""
+    assert athlete_id.isdigit(), 'Athlete id must contain only digits'
+    with spinner():
+        activites_or_error = ctx.obj['client'].fetch_athlete_activities(athlete_id, month=month.date())
+    if isinstance(activites_or_error, Exception):
+        traceback.print_exc()
+        print('Error:', str(activites_or_error))
+        return 1
+    # We've elimited errors, now we have only activites.
+    print_activities_table(activites_or_error)
+
+
+@click.command()
 @click.argument('club', required=True)
 @click.pass_context
 def club_activities(ctx, club):
+    """Fetch and display club activity feed."""
     assert club.isdigit(), "Club id must contain only digits."
     with spinner():
         activites_or_error = ctx.obj['client'].fetch_club_activities(club)

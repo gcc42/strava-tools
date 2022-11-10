@@ -2,6 +2,7 @@ import pathlib, json, logging, os
 
 from stravatools.scraper import StravaScraper
 from stravatools.strava_types import Activity, Athlete
+from datetime import date
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,18 @@ class Client(object):
             return [Activity(a) for a in entries]
         except Exception as e:
             logger.exception('Error while fetching club')
+            return e
+
+    def fetch_athlete_activities(self, athlete_id: str, month: date = None):
+        """Fetch all activities for athlete_id for the month specified.
+
+        If month is None, fetches the default feed.
+        """
+        try:
+            self.verify_login()
+            return [Activity(a) for a in self.scraper.fetch_athlete_activities(athlete_id, month)]
+        except Exception as e:
+            logger.exception('Error fetching athlete activities')
             return e
 
     def store_activities(self):
