@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import codecs
 import logging
 import re
 from datetime import date, timedelta, datetime
@@ -191,7 +192,7 @@ def to_distance(value) -> Distance:
 
 def decode_unicode_escape(text: str):
     """Decode unicode escaped strings like Miko\u0142aj."""
-    return bytes(text, 'utf-8').decode('unicode_escape')
+    return codecs.escape_decode(bytes(text, "utf-8"))[0].decode("utf-8")
 
 
 if __name__ == '__main__':
