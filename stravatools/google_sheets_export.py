@@ -14,8 +14,9 @@ from stravatools.strava_types import Activity
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # The data range for strava activities. Covers all cells except for the header row.
-DATA_RANGE = 'strava_data!A2:I'
 HEADERS = ['Id', 'Athlete Id', 'Athlete Name', 'Datetime', 'Title', 'Sport', 'Duration', 'Distance', 'Elevation']
+# Cell range based on the header row.
+DATA_RANGE = 'strava_data!A2:%s' % chr(ord('A') + len(HEADERS) - 1)
 
 logger = logging.getLogger(__name__)
 
