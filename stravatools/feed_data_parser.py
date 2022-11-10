@@ -97,7 +97,7 @@ def parse_group_activity(entry):
             'kind': activity[_TYPE],
             'datetime': timestamp,
             'title': decode_unicode_escape(activity['name']),
-            'id': activity['entity_id'],
+            'id': str(activity['entity_id']),
             'distance': get_stat(activity, 'Distance'),
             'duration': get_stat(activity, 'Time'),
             'elevation': get_stat(activity, 'Elev Gain'),

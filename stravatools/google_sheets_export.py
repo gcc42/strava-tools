@@ -1,20 +1,21 @@
-import logging, os.path
+import logging
+import os.path
 
 from google import auth
-from google.auth.transport.requests import Request
 from google.auth.exceptions import DefaultCredentialsError
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+
 from stravatools.strava_types import Activity
 
 # Allow read and write of spreadsheets
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # The data range for strava activities. Covers all cells except for the header row.
-DATA_RANGE = 'strava_data!A2:H'
-HEADERS = ['Id', 'Athlete Id', 'Datetime', 'Title', 'Sport', 'Duration', 'Distance', 'Elevation']
+DATA_RANGE = 'strava_data!A2:I'
+HEADERS = ['Id', 'Athlete Id', 'Athlete Name', 'Datetime', 'Title', 'Sport', 'Duration', 'Distance', 'Elevation']
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +85,7 @@ def export_activities(activities: [Activity], spreadsheet_id: str):
 
 
 def update_values(values, activities: [Activity]):
-    # Dictionary of activity id to value row
+    # Dictionary of activity id to value row.
     values_dict = {
         row[0]: row for row in values
     }
@@ -92,8 +93,9 @@ def update_values(values, activities: [Activity]):
         activity.id: convert_to_row(activity) for activity in activities
     }
     values_dict.update(activities_dict)
-    #
-    return sorted(values_dict.values(), key=lambda r: r[0])
+    # Return rows sorted by datetime.
+    datetime_idx = HEADERS.index('Datetime')
+    return sorted(values_dict.values(), key=lambda r: r[datetime_idx])
 
 
 def convert_to_row(activity: Activity) -> [str]:
@@ -104,6 +106,7 @@ def convert_to_row(activity: Activity) -> [str]:
     row = [
         activity.id,
         activity.athlete.id,
+        activity.athlete.name,
         str(activity.datetime),  # datetime
         activity.title,
         activity.sport.name,
