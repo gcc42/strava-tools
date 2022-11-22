@@ -8,5 +8,4 @@ click-shell>=2.0
 click-spinner>=0.1.10
 google-api-python-client
 google-auth-httplib2
-
 google-auth-oauthlib

@@ -14,7 +14,7 @@ def _args_parser() -> argparse.ArgumentParser:
 def main(parser: argparse.ArgumentParser) -> None:
     args = parser.parse_args()
     client = Client()
-    print(args.username, args.password, args.save)
+    print('Logging in user %s' % args.username)
     if client.login(args.username, args.password, True, args.save):
         client.close()
         sys.exit(0)

@@ -86,7 +86,7 @@ class Client(object):
             self.verify_login()
             return [Activity(a) for a in self.scraper.fetch_athlete_activities(athlete_id, month)]
         except Exception as e:
-            logger.exception('Error fetching athlete activities')
+            logger.exception('Error fetching athlete activities for athlete %s' % athlete_id)
             return e
 
     def store_activities(self):

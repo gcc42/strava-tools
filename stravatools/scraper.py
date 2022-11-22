@@ -183,7 +183,7 @@ class StravaScraper(object):
         try:
             feed_data = json.loads(response.text)
         except json.JSONDecodeError as e:
-            raise UnexpectedScrapped('Could not parse club activities data') from e
+            raise UnexpectedScrapped('Could not parse club activities data', response.text) from e
         return (feed_data_parser.get_cursor(feed_data),
                 feed_data_parser.has_more(feed_data),
                 feed_data_parser.club_feed_activites(feed_data))
@@ -197,13 +197,15 @@ class StravaScraper(object):
 
     @staticmethod
     def parse_dashboard_activities(response: requests.Response):
+        if 'This Account Is Private' in response.text:
+            raise RuntimeError('This profile visibility is set to private')
         try:
             soup = BeautifulSoup(response.text, 'html.parser')
             feed_data_str = soup.select_one('div.content.react-feed-component')['data-react-props']
             feed_data = json.loads(feed_data_str)
         except Exception as e:
             logger.exception('Error parsing user feed data, response:\n%s', response.text)
-            raise UnexpectedScrapped('Could not parse athlete dashbaord activities data') from e
+            raise UnexpectedScrapped('Could not parse athlete dashbaord activities data', response.text) from e
         return feed_data_parser.athlete_feed_activities(feed_data)
 
     def send_kudo(self, activity_id):
